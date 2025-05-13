@@ -81,20 +81,19 @@ def process_file(file_path, output_path):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--input-dir', required=True, help='Input directory containing .hdf5 files')
+    parser.add_argument('--input-filename', required=True, help='Input file: an .hdf5 file')
     parser.add_argument('--output-dir', required=True, help='Output directory to save .json files')
     args = parser.parse_args()
 
-    input_dir = args.input_dir
+    file_path = args.input_filename
     output_dir = args.output_dir
 
-    os.makedirs(output_dir, exist_ok=True)
+    #will not work in GCS
+    #os.makedirs(output_dir, exist_ok=True)
 
-    for file_name in os.listdir(input_dir):
-        if file_name.endswith('.hdf5'):
-            file_path = os.path.join(input_dir, file_name)
-            process_file(file_path, output_dir)
-            print(f'Processed: {file_name}')
+    if file_path.endswith('.hdf5'):
+        process_file(file_path, output_dir)
+        print(f'Processed: {file_path}')
 
 if __name__ == '__main__':
     main()
