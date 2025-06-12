@@ -38,13 +38,17 @@ def process_file(file_path, output_path):
         }, index=to_datetime_index(t_acc))
         acc_minute = df_acc.resample('1T').mean()
 
+        #dura_index = pd.date_range(start=acc_minute[0].floor('T'), end=acc_minute[-1].floor('T'), freq='min')
+
         # Heart rate
         df_hr = pd.DataFrame({'heart_rate': hr}, index=to_datetime_index(t_hr))
         hr_minute = df_hr.resample('1T').mean()
 
         # Step count (cumulative to per-minute steps)
-        df_steps = pd.DataFrame({'steps': steps}, index=to_datetime_index(t_step))
-        steps_diff = df_steps.diff().clip(lower=0)  # avoid negative steps
+        #df_steps = pd.DataFrame({'steps': steps}, index=to_datetime_index(t_step))
+        #steps_diff = df_steps.diff().clip(lower=0)  # avoid negative steps
+        #steps_diff.iloc[0] = 1
+        steps_diff = pd.DataFrame({'steps':1}, index=to_datetime_index(t_step))  
         steps_minute = steps_diff.resample('1T').sum()
 
         # Combine
