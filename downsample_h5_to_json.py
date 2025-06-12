@@ -18,9 +18,9 @@ def process_file(file_path, output_path):
 
         acc_path = f"{base_path}/Accelerometer/Ch_0/Data"
         t_acc = f[acc_path + "/t"][:]
-        x = f[acc_path + "/x"][:]
-        y = f[acc_path + "/y"][:]
-        z = f[acc_path + "/z"][:]
+        #x = f[acc_path + "/x"][:]
+        #y = f[acc_path + "/y"][:]
+        #z = f[acc_path + "/z"][:]
 
         hr_path = f"{base_path}/Heart_rate/Ch_0/Data"
         t_hr = f[hr_path + "/t"][:]
@@ -28,15 +28,15 @@ def process_file(file_path, output_path):
 
         step_path = f"{base_path}/Step_count/Ch_0/Data"
         t_step = f[step_path + "/t"][:]
-        steps = f[step_path + "/steps"][:]
+        #steps = f[step_path + "/steps"][:]
 
         # Accelerometer
-        df_acc = pd.DataFrame({
-            'x': x,
-            'y': y,
-            'z': z
-        }, index=to_datetime_index(t_acc))
-        acc_minute = df_acc.resample('1T').mean()
+        #df_acc = pd.DataFrame({
+        #    'x': x,
+        #    'y': y,
+        #    'z': z
+        #}, index=to_datetime_index(t_acc))
+        #acc_minute = df_acc.resample('1T').mean()
 
         #dura_index = pd.date_range(start=acc_minute[0].floor('T'), end=acc_minute[-1].floor('T'), freq='min')
 
@@ -45,13 +45,15 @@ def process_file(file_path, output_path):
         hr_minute = df_hr.resample('1T').mean()
 
         # Step detection, extracted from cummulative stepCount data which increases on detecting a new step
-        df_steps = pd.DataFrame({'steps':1}, index=to_datetime_index(t_step))  
+        df_steps = pd.DataFrame({'step_count':1}, index=to_datetime_index(t_step))  
         steps_minute = df_steps.resample('1T').sum()
 
         # Combine
-        combined = pd.concat([acc_minute, hr_minute, steps_minute], axis=1)
+        #combined = pd.concat([acc_minute, hr_minute, steps_minute], axis=1)
+        combined = pd.concat([hr_minute, steps_minute], axis=1)        
         # Replace NaN in column 'step' with 0
-        combined['steps'] = combined['steps'].fillna(0)
+        #combined['steps'] = combined['steps'].fillna(0)
+        combined['step_count'] = combined['step_count'].fillna(0)
 
         # Format timestamp with :00 seconds
         combined.reset_index(inplace=True)
@@ -62,7 +64,8 @@ def process_file(file_path, output_path):
         combined.drop(columns=['index'], inplace=True)
 
         #combined = combined.where(pd.notna(combined),None)
-        combined['steps'] = combined['steps'].round().astype('Int64')  # using Int64 preserves Null
+        #combined['steps'] = combined['steps'].round().astype('Int64')  # using Int64 preserves Null
+        combined['step_count'] = combined['step_count'].round().astype('Int64')  # using Int64 preserves Null        
         #combined['steps'] = combined['steps'].where(pd.notna(combined['steps']), None) 
         #combined['steps'] = combined['steps'].fillna(value=pd.NA)
         #combined['steps'] = combined['steps'].replace(pd.NA, None)
@@ -72,13 +75,13 @@ def process_file(file_path, output_path):
         combined = combined.applymap(lambda x: None if pd.isna(x) else x)
 
         #Format output
-        data = []
-        for _, row in combined.iterrows():
-            data.append({
-                "timestamp": row['timestamp'],                
-                "heart_rate": row['heart_rate'],
-                "step_count": row['steps']
-            })
+        #data = []
+        #for _, row in combined.iterrows():
+        #    data.append({
+        #        "timestamp": row['timestamp'],                
+        #        "heart_rate": row['heart_rate'],
+        #        "step_count": row['steps']
+        #    })
 
             # # JSON-friendly dict : convert to dict and replace pd.NA with None
             # row_dict = {k: (None if pd.isna(v) else v) for k, v in row.items()}
@@ -98,8 +101,8 @@ def process_file(file_path, output_path):
                     "acceleration": "mg"
                 }
             },
-            "data": data
-            #'data': combined.to_dict(orient='records')  # Convert to JSON-safe structure
+            #"data": data
+            'data': combined.to_dict(orient='records')  # Convert to JSON-safe structure
         }
 
         # Write to JSON
