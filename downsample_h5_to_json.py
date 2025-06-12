@@ -73,31 +73,16 @@ def process_file(file_path, output_path):
 
         #Format output
         data = []
-        # Specify group columns
-        group_keys = ['x', 'y', 'z']        
         for _, row in combined.iterrows():
             data.append({
-                #"timestamp": row['timestamp'].strftime('%Y-%m-%dT%H:%M:00Z'),
                 "timestamp": row['timestamp'],                
-                #"heart_rate": int(round(row['heart_rate'])),
                 "heart_rate": row['heart_rate'],
-                "acceleration": {
-                    "x": round(row['x'], 2),
-                    "y": round(row['y'], 2),
-                    "z": round(row['z'], 2)
-                },
                 "step_count": row['steps']
             })
 
             # # JSON-friendly dict : convert to dict and replace pd.NA with None
             # row_dict = {k: (None if pd.isna(v) else v) for k, v in row.items()}
-            
-            # # Extract group values
-            # group_dict = {k: round(row_dict.pop(k),2) for k in group_keys}
-            
-            # # Add group nesting
-            # row_dict['acceleration'] = group_dict
-            
+                        
             # data.append(row_dict)
 
             
