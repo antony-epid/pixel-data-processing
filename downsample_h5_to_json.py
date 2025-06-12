@@ -49,6 +49,8 @@ def process_file(file_path, output_path):
 
         # Combine
         combined = pd.concat([acc_minute, hr_minute, steps_minute], axis=1)
+        # Replace NaN in column 'step' with 0
+        combined['steps'] = combined['steps'].fillna(0)
 
         # Format timestamp with :00 seconds
         combined.reset_index(inplace=True)
