@@ -52,43 +52,18 @@ def process_file(file_path, output_path):
         #combined = pd.concat([acc_minute, hr_minute, steps_minute], axis=1)
         combined = pd.concat([hr_minute, steps_minute], axis=1)        
         # Replace NaN in column 'step' with 0
-        #combined['steps'] = combined['steps'].fillna(0)
         combined['step_count'] = combined['step_count'].fillna(0)
 
         # Format timestamp with :00 seconds
         combined.reset_index(inplace=True)
-        #combined['timestamp'] = combined['index'].dt.strftime('%Y-%m-%d %H:%M:00Z')
-        #combined['timestamp'] = combined['index']
-        #create timestamp column as the first column in the dataframe
         combined.insert(0, 'timestamp', combined['index'].dt.strftime('%Y-%m-%d %H:%M:00Z'))
         combined.drop(columns=['index'], inplace=True)
 
-        #combined = combined.where(pd.notna(combined),None)
-        #combined['steps'] = combined['steps'].round().astype('Int64')  # using Int64 preserves Null
         combined['step_count'] = combined['step_count'].round().astype('Int64')  # using Int64 preserves Null        
-        #combined['steps'] = combined['steps'].where(pd.notna(combined['steps']), None) 
-        #combined['steps'] = combined['steps'].fillna(value=pd.NA)
-        #combined['steps'] = combined['steps'].replace(pd.NA, None)
         combined['heart_rate'] = combined['heart_rate'].round().astype('Int64')
 
-        #try this!!!
-        combined = combined.applymap(lambda x: None if pd.isna(x) else x)
-
-        #Format output
-        #data = []
-        #for _, row in combined.iterrows():
-        #    data.append({
-        #        "timestamp": row['timestamp'],                
-        #        "heart_rate": row['heart_rate'],
-        #        "step_count": row['steps']
-        #    })
-
-            # # JSON-friendly dict : convert to dict and replace pd.NA with None
-            # row_dict = {k: (None if pd.isna(v) else v) for k, v in row.items()}
-                        
-            # data.append(row_dict)
-
-            
+        #The following is not needed when using 'data':combined.to_dict. It's needed if we build it from scratch (list of data from each timestamp) 
+        #combined = combined.applymap(lambda x: None if pd.isna(x) else x)
 
         result = {
             "deviceid": str(device_id),
@@ -101,7 +76,6 @@ def process_file(file_path, output_path):
                     "acceleration": "mg"
                 }
             },
-            #"data": data
             'data': combined.to_dict(orient='records')  # Convert to JSON-safe structure
         }
 
