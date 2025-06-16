@@ -18,9 +18,6 @@ def process_file(file_path, output_path):
 
         acc_path = f"{base_path}/Accelerometer/Ch_0/Data"
         t_acc = f[acc_path + "/t"][:]
-        #x = f[acc_path + "/x"][:]
-        #y = f[acc_path + "/y"][:]
-        #z = f[acc_path + "/z"][:]
 
         hr_path = f"{base_path}/Heart_rate/Ch_0/Data"
         t_hr = f[hr_path + "/t"][:]
@@ -30,15 +27,6 @@ def process_file(file_path, output_path):
         t_step = f[step_path + "/t"][:]
         #steps = f[step_path + "/steps"][:]
 
-        # Accelerometer
-        #df_acc = pd.DataFrame({
-        #    'x': x,
-        #    'y': y,
-        #    'z': z
-        #}, index=to_datetime_index(t_acc))
-        #acc_minute = df_acc.resample('1T').mean()
-
-        #dura_index = pd.date_range(start=acc_minute[0].floor('T'), end=acc_minute[-1].floor('T'), freq='min')
 
         # Heart rate
         df_hr = pd.DataFrame({'heart_rate': hr}, index=to_datetime_index(t_hr))
@@ -51,7 +39,7 @@ def process_file(file_path, output_path):
         # Combine
         #combined = pd.concat([acc_minute, hr_minute, steps_minute], axis=1)
         combined = pd.concat([hr_minute, steps_minute], axis=1)        
-        # Replace NaN in column 'step' with 0
+        # Replace NaN in column 'step' with 0, I think this is no longer necessary ?
         combined['step_count'] = combined['step_count'].fillna(0)
 
         # Format timestamp with :00 seconds
@@ -61,9 +49,6 @@ def process_file(file_path, output_path):
 
         combined['step_count'] = combined['step_count'].round().astype('Int64')  # using Int64 preserves Null        
         combined['heart_rate'] = combined['heart_rate'].round().astype('Int64')
-
-        #The following is not needed when using 'data':combined.to_dict. It's needed if we build it from scratch (list of data from each timestamp) 
-        #combined = combined.applymap(lambda x: None if pd.isna(x) else x)
 
         result = {
             "deviceid": str(device_id),
