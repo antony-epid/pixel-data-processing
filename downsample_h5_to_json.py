@@ -23,14 +23,14 @@ def process_file(file_path, output_path):
         t_hr = f[hr_path + "/t"][:]
         hr = f[hr_path + "/heart_rate"][:]
 
-        step_path = f"{base_path}/Step_count/Ch_0/Data"
-        t_step = f[step_path + "/t"][:]
-        #steps = f[step_path + "/steps"][:]
-
-
+        
         # Heart rate
         df_hr = pd.DataFrame({'heart_rate': hr}, index=to_datetime_index(t_hr))
         hr_minute = df_hr.resample('1T').mean()
+
+        step_path = f"{base_path}/Step_count/Ch_0/Data"
+        t_step = f[step_path + "/t"][:]
+        #steps = f[step_path + "/steps"][:]
 
         # Step detection, extracted from cummulative stepCount data which increases on detecting a new step
         df_steps = pd.DataFrame({'step_count':1}, index=to_datetime_index(t_step))  
