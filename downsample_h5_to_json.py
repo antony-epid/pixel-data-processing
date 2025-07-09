@@ -36,31 +36,39 @@ def process_file(file_path, output_path):
 
         acc_path = f"{base_path}/Accelerometer/Ch_0/Data"
         t_acc = f[acc_path + "/t"][:]
+        # Create a DatetimeIndex from accelerometer timestamps, resampled to minute-level
+        acc_time_index = to_datetime_index(t_acc)
+        acc_minute_index = pd.Series(index=acc_time_index).resample('1T').mean().index  
 
         hr_path = f"{base_path}/Heart_rate/Ch_0/Data"
         if 'Heart_rate' not in f[base_path]:
             # Create empty DataFrame with null heart_rate for the same index as acc timestamps
-            hr_minute = pd.DataFrame({'heart_rate': pd.Series(dtype='Int64')}, index=to_datetime_index(t_acc))
-            hr_minute = hr_minute.resample('1T').asfreq()
+            #hr_minute = pd.DataFrame({'heart_rate': pd.Series(dtype='Int64')}, index=to_datetime_index(t_acc))
+            #hr_minute = hr_minute.resample('1T').asfreq()
+            hr_minute = pd.DataFrame({'heart_rate': pd.Series(dtype='Int64')}, index=acc_minute_index)
         else:
             t_hr = f[hr_path + "/t"][:]
             hr = f[hr_path + "/heart_rate"][:]
             # Heart rate
             df_hr = pd.DataFrame({'heart_rate': hr}, index=to_datetime_index(t_hr))
             hr_minute = df_hr.resample('1T').mean()
-
+            hr_minute = hr_minute.reindex(acc_minute_index)  # Reindex to match acc_minute_index
 
         # Set the 'step_count' column as null in steps_minute dataframe if Step_count group is not found in the HDF5 f object
         if 'Step_count' not in f[base_path]:
-            steps_minute = pd.DataFrame({'step_count': pd.Series(dtype='Int64')}, index=hr_minute.index)
+            #steps_minute = pd.DataFrame({'step_count': pd.Series(dtype='Int64')}, index=to_datetime_index(t_acc))
+            steps_minute = pd.DataFrame({'step_count': pd.Series(dtype='Int64')}, index=acc_minute_index)            
         else:
             step_path = f"{base_path}/Step_count/Ch_0/Data"
             t_step = f[step_path + "/t"][:]
             #steps = f[step_path + "/steps"][:]
             
             # Step detection, extracted from cummulative stepCount data which increases on detecting a new step
-            df_steps = pd.DataFrame({'step_count':1}, index=to_datetime_index(t_step))  
+            df_steps = pd.DataFrame({'step_count': 1}, index=to_datetime_index(t_step))  
             steps_minute = df_steps.resample('1T').sum()
+            # Reindex to match hr_minute's index, fill missing with NaN (which will become null in JSON)
+            #steps_minute = steps_minute.reindex(hr_minute.index)
+            steps_minute = steps_minute.reindex(acc_minute_index)  # Reindex to match acc_minute_index
             # Replace NaN in column 'step' with 0, I think this is no longer necessary ?
             steps_minute['step_count'] = steps_minute['step_count'].fillna(0)
 
