@@ -103,30 +103,25 @@ def process_file(file_path, output_path):
         }
 
         # Write to JSON
-        #filename = os.path.basename(file_path).replace('.hdf5', '.json')
-        #filename = str(Path(file_path).with_suffix('.json').name)
-        out_file = os.path.join(output_path, filename)
-        #out_file = transform_path(file_path)
-        print(f'Writing to : {out_file}')
-        with open(out_file, 'w') as f_out:
+        with open(output_path, 'w') as f_out:
             json.dump(result, f_out, indent=2)
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--input-filename', required=True, help='Input file: an .hdf5 file')
-    parser.add_argument('--output-dir', required=True, help='Output directory to save .json files')
+    parser.add_argument('--output-filename', required=True, help='Output file to save .json files')
+
     args = parser.parse_args()
 
     file_path = args.input_filename
-    output_dir = args.output_dir
+    output_path = args.output_filename
 
     #will not work in GCS
     #os.makedirs(output_dir, exist_ok=True)
 
     if file_path.lower().endswith(('.h5', '.hdf5')):
-        process_file(file_path, output_dir)
+        process_file(file_path, output_path)
         print(f'Processed: {file_path}')
 
 if __name__ == '__main__':
     main()
-
