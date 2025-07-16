@@ -10,7 +10,10 @@ from pathlib import Path
 def transform_path(path: str) -> str:
     parts = path.strip().split('/')
     if len(parts) < 5:
-        raise ValueError("Path must contain at least 5 components")
+        #raise ValueError("Path must contain at least 5 components")
+        filebase = os.path.splitext(parts[-1])[0]
+        proctime = datetime.now().strftime('%Y%m%d_%H%M%S')
+        return 'InvalidPINfolder', f"{proctime}_{filebase}.json"
 
     short_dir, uuid, dataset, compound_part, filename = parts[-5:]
     
@@ -22,7 +25,8 @@ def transform_path(path: str) -> str:
     file_base = os.path.splitext(filename)[0]
     
     #return id_part, f"{id_part}_{short_dir}-{uuid}-{dataset}-{compound_joined}_{file_base}.json"
-    return id_part, f"{id_part}_{short_dir}-{uuid}-{compound_joined}_{file_base}.json"
+    #return id_part, f"{id_part}_{short_dir}-{uuid}-{compound_joined}_{file_base}.json"
+    return id_part, f"{short_dir}-{uuid}-{compound_joined}_{file_base}.json"
 
 
 def to_datetime_index(timestamps):
@@ -34,6 +38,9 @@ def process_file(file_path, output_path):
         rootgrp = list(f.keys())[0]
         base_path = f"{rootgrp}"
 
+        pin = f.attrs.get('pin', 'InvalidPIN')
+        device_id = str(pin) if isinstance(pin, (str, int, float, bool, bytes)) else 'InvalidPIN'
+        
         acc_path = f"{base_path}/Accelerometer/Ch_0/Data"
         t_acc = f[acc_path + "/t"][:]
         # Create a DatetimeIndex from accelerometer timestamps, resampled to minute-level
@@ -86,7 +93,8 @@ def process_file(file_path, output_path):
         combined['step_count'] = combined['step_count'].round().astype('Int64')  # using Int64 preserves Null        
         combined['heart_rate'] = combined['heart_rate'].round().astype('Int64')
 
-        device_id, filename = transform_path(file_path)
+        folder_pin, filename = transform_path(file_path)
+        filename = device_id + '_' + filename 
 
         result = {
             "deviceid": str(device_id),
