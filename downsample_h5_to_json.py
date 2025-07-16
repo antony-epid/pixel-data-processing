@@ -93,8 +93,8 @@ def process_file(file_path, output_path):
         combined['step_count'] = combined['step_count'].round().astype('Int64')  # using Int64 preserves Null        
         combined['heart_rate'] = combined['heart_rate'].round().astype('Int64')
 
-        folder_pin, filename = transform_path(file_path)
-        filename = device_id + '_' + filename 
+        #folder_pin, filename = transform_path(file_path)
+        #filename = device_id + '_' + filename 
 
         result = {
             "deviceid": str(device_id),
