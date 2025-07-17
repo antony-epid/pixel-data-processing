@@ -97,7 +97,7 @@ def process_file(file_path, output_path):
         #filename = device_id + '_' + filename 
 
         result = {
-            "deviceid": str(device_id),
+            "pwid": str(device_id),
             "device": "Pixel Watch",
             "metadata": {
                 "version": "1.0",
