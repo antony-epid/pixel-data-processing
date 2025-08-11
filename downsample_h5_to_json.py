@@ -1,11 +1,11 @@
-import os
-import json
 import argparse
+import json
+import os
 from datetime import datetime
+
 import h5py
-import numpy as np
 import pandas as pd
-from pathlib import Path
+
 
 def transform_path(path: str) -> str:
     parts = path.strip().split('/')
@@ -32,7 +32,7 @@ def transform_path(path: str) -> str:
 def to_datetime_index(timestamps):
     return pd.to_datetime(timestamps, unit='s')
 
-def process_file(file_path, output_path):
+def process_file(file_path: str, output_path: str) -> tuple[str, str, str]:
     with h5py.File(file_path, 'r') as f:
         # Extract ID from group
         rootgrp = list(f.keys())[0]
@@ -45,20 +45,20 @@ def process_file(file_path, output_path):
         t_acc = f[acc_path + "/t"][:]
         # Create a DatetimeIndex from accelerometer timestamps, resampled to minute-level
         acc_time_index = to_datetime_index(t_acc)
-        acc_minute_index = pd.Series(index=acc_time_index).resample('1T').mean().index  
+        acc_minute_index = pd.Series(index=acc_time_index).resample('1min').mean().index  
 
         hr_path = f"{base_path}/Heart_rate/Ch_0/Data"
         if 'Heart_rate' not in f[base_path]:
             # Create empty DataFrame with null heart_rate for the same index as acc timestamps
             #hr_minute = pd.DataFrame({'heart_rate': pd.Series(dtype='Int64')}, index=to_datetime_index(t_acc))
-            #hr_minute = hr_minute.resample('1T').asfreq()
+            #hr_minute = hr_minute.resample('1min').asfreq()
             hr_minute = pd.DataFrame({'heart_rate': pd.Series(dtype='Int64')}, index=acc_minute_index)
         else:
             t_hr = f[hr_path + "/t"][:]
             hr = f[hr_path + "/heart_rate"][:]
             # Heart rate
             df_hr = pd.DataFrame({'heart_rate': hr}, index=to_datetime_index(t_hr))
-            hr_minute = df_hr.resample('1T').mean()
+            hr_minute = df_hr.resample('1min').mean()
             hr_minute = hr_minute.reindex(acc_minute_index)  # Reindex to match acc_minute_index
 
         # Set the 'step_count' column as null in steps_minute dataframe if Step_count group is not found in the HDF5 f object
@@ -72,7 +72,7 @@ def process_file(file_path, output_path):
             
             # Step detection, extracted from cummulative stepCount data which increases on detecting a new step
             df_steps = pd.DataFrame({'step_count': 1}, index=to_datetime_index(t_step))  
-            steps_minute = df_steps.resample('1T').sum()
+            steps_minute = df_steps.resample('1min').sum()
             # Reindex to match hr_minute's index, fill missing with NaN (which will become null in JSON)
             #steps_minute = steps_minute.reindex(hr_minute.index)
             steps_minute = steps_minute.reindex(acc_minute_index)  # Reindex to match acc_minute_index
@@ -87,7 +87,7 @@ def process_file(file_path, output_path):
 
         # Format timestamp with :00 seconds
         combined.reset_index(inplace=True)
-        combined.insert(0, 'timestamp', combined['index'].dt.strftime('%Y-%m-%d %H:%M:00Z'))
+        combined.insert(0, 'timestamp', combined['index'].dt.strftime('%Y-%m-%dT%H:%M:%SZ'))
         combined.drop(columns=['index'], inplace=True)
 
         combined['step_count'] = combined['step_count'].round().astype('Int64')  # using Int64 preserves Null        
@@ -110,9 +110,20 @@ def process_file(file_path, output_path):
             'data': combined.to_dict(orient='records')  # Convert to JSON-safe structure
         }
 
+        dt = datetime.fromisoformat(result['data'][0]['timestamp'][:-1])
+        timestamp = dt.strftime('%Y-%m-%dT%H:00:00Z')
+        path_timestamp = dt.strftime('%Y%m%d-%H0000')
+
+        path = os.path.join(
+            os.path.dirname(output_path),
+            f'{device_id}_{path_timestamp}_{os.path.basename(output_path)}'
+        )
+
         # Write to JSON
-        with open(output_path, 'w') as f_out:
+        with open(path, 'w') as f_out:
             json.dump(result, f_out, indent=2)
+
+        return device_id, timestamp, path
 
 def main():
     parser = argparse.ArgumentParser()
@@ -121,15 +132,15 @@ def main():
 
     args = parser.parse_args()
 
-    file_path = args.input_filename
+    input_path = args.input_filename
     output_path = args.output_filename
 
     #will not work in GCS
     #os.makedirs(output_dir, exist_ok=True)
 
-    if file_path.lower().endswith(('.h5', '.hdf5')):
-        process_file(file_path, output_path)
-        print(f'Processed: {file_path}')
+    if input_path.lower().endswith(('.h5', '.hdf5')):
+        device_id, timestamp, path = process_file(input_path, output_path)
+        print(json.dumps({ "result": "success", "pwid": device_id, "timestamp": timestamp, "path": path }))
 
 if __name__ == '__main__':
     main()
