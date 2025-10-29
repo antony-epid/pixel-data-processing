@@ -42,7 +42,11 @@ def process_file(file_path: str, output_path: str) -> tuple[str, str, str]:
         device_id = str(pin) if isinstance(pin, (str, int, float, bool, bytes)) else 'InvalidPIN'
         
         acc_path = f"{base_path}/Accelerometer/Ch_0/Data"
-        t_acc = f[acc_path + "/t"][:]
+        try:
+           t_acc = f[acc_path + "/t"][:]
+        except Exception as e:
+           raise Exception(f"Incomplete file ---- Missing ACC data from {file_path}")
+
         # Create a DatetimeIndex from accelerometer timestamps, resampled to minute-level
         acc_time_index = to_datetime_index(t_acc)
         acc_minute_index = pd.Series(index=acc_time_index).resample('1min').mean().index  
@@ -54,8 +58,12 @@ def process_file(file_path: str, output_path: str) -> tuple[str, str, str]:
             #hr_minute = hr_minute.resample('1min').asfreq()
             hr_minute = pd.DataFrame({'heart_rate': pd.Series(dtype='Int64')}, index=acc_minute_index)
         else:
-            t_hr = f[hr_path + "/t"][:]
-            hr = f[hr_path + "/heart_rate"][:]
+            try:
+               t_hr = f[hr_path + "/t"][:]
+               hr = f[hr_path + "/heart_rate"][:]
+            except Exception as e:
+               raise Exception(f"Incomplete file ---- Found HR group, but HR data is empty in {file_path}")
+
             # Heart rate
             df_hr = pd.DataFrame({'heart_rate': hr}, index=to_datetime_index(t_hr))
             hr_minute = df_hr.resample('1min').mean()
@@ -67,8 +75,11 @@ def process_file(file_path: str, output_path: str) -> tuple[str, str, str]:
             steps_minute = pd.DataFrame({'step_count': pd.Series(dtype='Int64')}, index=acc_minute_index)            
         else:
             step_path = f"{base_path}/Step_count/Ch_0/Data"
-            t_step = f[step_path + "/t"][:]
-            #steps = f[step_path + "/steps"][:]
+            try:
+               t_step = f[step_path + "/t"][:]
+               #steps = f[step_path + "/steps"][:]
+            except Exception as e:
+               raise Exception(f"Incomplete file ---- Found step count group, but step count data is empty in {file_path}")
             
             # Step detection, extracted from cummulative stepCount data which increases on detecting a new step
             df_steps = pd.DataFrame({'step_count': 1}, index=to_datetime_index(t_step))  
