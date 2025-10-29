@@ -6,7 +6,6 @@ from datetime import datetime
 import h5py
 import pandas as pd
 
-
 def transform_path(path: str) -> str:
     parts = path.strip().split('/')
     if len(parts) < 5:
@@ -44,7 +43,7 @@ def process_file(file_path: str, output_path: str) -> tuple[str, str, str]:
         acc_path = f"{base_path}/Accelerometer/Ch_0/Data"
         try:
            t_acc = f[acc_path + "/t"][:]
-        except Exception as e:
+        except KeyError as e:
            raise Exception(f"Incomplete file ---- Missing ACC data from {file_path}")
 
         # Create a DatetimeIndex from accelerometer timestamps, resampled to minute-level
@@ -61,7 +60,7 @@ def process_file(file_path: str, output_path: str) -> tuple[str, str, str]:
             try:
                t_hr = f[hr_path + "/t"][:]
                hr = f[hr_path + "/heart_rate"][:]
-            except Exception as e:
+            except KeyError as e:
                raise Exception(f"Incomplete file ---- Found HR group, but HR data is empty in {file_path}")
 
             # Heart rate
@@ -78,7 +77,7 @@ def process_file(file_path: str, output_path: str) -> tuple[str, str, str]:
             try:
                t_step = f[step_path + "/t"][:]
                #steps = f[step_path + "/steps"][:]
-            except Exception as e:
+            except KeyError as e:
                raise Exception(f"Incomplete file ---- Found step count group, but step count data is empty in {file_path}")
             
             # Step detection, extracted from cummulative stepCount data which increases on detecting a new step
@@ -154,4 +153,7 @@ def main():
         print(json.dumps({ "result": "success", "pwid": device_id, "timestamp": timestamp, "path": path }))
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except Exception as e:
+        print(f"Exception: {e}")
