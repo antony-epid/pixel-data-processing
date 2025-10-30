@@ -6,6 +6,7 @@ from datetime import datetime
 import h5py
 import pandas as pd
 
+
 def transform_path(path: str) -> str:
     parts = path.strip().split('/')
     if len(parts) < 5:
@@ -43,8 +44,8 @@ def process_file(file_path: str, output_path: str) -> tuple[str, str, str]:
         acc_path = f"{base_path}/Accelerometer/Ch_0/Data"
         try:
            t_acc = f[acc_path + "/t"][:]
-        except KeyError as e:
-           raise Exception(f"Incomplete file ---- Missing ACC data from {file_path}")
+        except Exception:
+            return {"status": "error", "message": "Incomplete file - Accelerometer data is missing"}
 
         # Create a DatetimeIndex from accelerometer timestamps, resampled to minute-level
         acc_time_index = to_datetime_index(t_acc)
@@ -60,8 +61,8 @@ def process_file(file_path: str, output_path: str) -> tuple[str, str, str]:
             try:
                t_hr = f[hr_path + "/t"][:]
                hr = f[hr_path + "/heart_rate"][:]
-            except KeyError as e:
-               raise Exception(f"Incomplete file ---- Found HR group, but HR data is empty in {file_path}")
+            except Exception:
+               return {"status": "error", "message": "Incomplete file - Found HR group, but HR data is empty"}
 
             # Heart rate
             df_hr = pd.DataFrame({'heart_rate': hr}, index=to_datetime_index(t_hr))
@@ -77,8 +78,8 @@ def process_file(file_path: str, output_path: str) -> tuple[str, str, str]:
             try:
                t_step = f[step_path + "/t"][:]
                #steps = f[step_path + "/steps"][:]
-            except KeyError as e:
-               raise Exception(f"Incomplete file ---- Found step count group, but step count data is empty in {file_path}")
+            except Exception:
+               return {"status": "error", "message": "Incomplete file - Found step count group, but step count data is empty"}
             
             # Step detection, extracted from cummulative stepCount data which increases on detecting a new step
             df_steps = pd.DataFrame({'step_count': 1}, index=to_datetime_index(t_step))  
@@ -120,20 +121,11 @@ def process_file(file_path: str, output_path: str) -> tuple[str, str, str]:
             'data': combined.to_dict(orient='records')  # Convert to JSON-safe structure
         }
 
-        dt = datetime.fromisoformat(result['data'][0]['timestamp'][:-1])
-        timestamp = dt.strftime('%Y-%m-%dT%H:00:00Z')
-        path_timestamp = dt.strftime('%Y%m%d-%H0000')
-
-        path = os.path.join(
-            os.path.dirname(output_path),
-            f'{device_id}_{path_timestamp}_{os.path.basename(output_path)}'
-        )
-
         # Write to JSON
-        with open(path, 'w') as f_out:
+        with open(output_path, 'w') as f_out:
             json.dump(result, f_out, indent=2)
 
-        return device_id, timestamp, path
+        return {"status": "success", "message": "File processed successfully", "device_id": device_id}
 
 def main():
     parser = argparse.ArgumentParser()
@@ -149,11 +141,8 @@ def main():
     #os.makedirs(output_dir, exist_ok=True)
 
     if input_path.lower().endswith(('.h5', '.hdf5')):
-        device_id, timestamp, path = process_file(input_path, output_path)
-        print(json.dumps({ "result": "success", "pwid": device_id, "timestamp": timestamp, "path": path }))
+        result = process_file(input_path, output_path)
+        print(json.dumps(result))
 
 if __name__ == '__main__':
-    try:
-        main()
-    except Exception as e:
-        print(f"Exception: {e}")
+    main()
